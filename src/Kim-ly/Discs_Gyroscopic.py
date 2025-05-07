@@ -233,7 +233,7 @@ n_modes = min(6, len(numerical_freqs))
 fig = plt.figure(figsize=(10, 2.5 * n_modes)) 
 for i in range(n_modes):
     full_mode = np.zeros(total_dof)
-    eigvec_displacement = eigvecs[:M_reduced.shape[0], i]  # only first N entries (displacement mode shapes), last N entries: velocities
+    eigvec_displacement = eigvecs[M_reduced.shape[0]:, i]  # only last N entries (displacement mode shapes), first N entries: velocities
     full_mode[free_dofs] = eigvec_displacement
     
     v = full_mode[0::4]
@@ -241,8 +241,8 @@ for i in range(n_modes):
     
     ax = fig.add_subplot(n_modes, 1, i+1)
             # Plot mode shapes
-    plt.plot(x, v, '-o', label='v (Y-dir)')
-    plt.plot(x, w, '--', label='w (Z-dir)')
+    plt.plot(x, v, '-o', label='u_y')
+    plt.plot(x, w, '--', label='u_z')
     
 #================================================================================================================
     # === Mark disc positions ===
