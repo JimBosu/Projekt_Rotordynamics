@@ -2,12 +2,15 @@
 """
 Created on Wed May  7 15:14:36 2025
 
-@author: kimly
+@author: kimly, busoj
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import eigh, eig
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 
 # === USER INPUT FOR BEAM AND MATERIAL PROPERTIES ===
 print("\n=== Define the beam and material properties ===")
@@ -16,7 +19,7 @@ Dinner = 0.0125 # float(input("Inner diameter of beam [m]: "))
 Douter  = 0.051 # float(input("Outer diameter of beam [m]: "))
 rho = 7.8334E-6 # float(input("Density [kg/m^3]: "))
 E = 2.0684E8 # float(input("Young's modulus [Pa]: "))
-Omega = 0/60*2*np.pi # float(input("Spin speed [rad/s]: "))
+Omega = 1000/60*2*np.pi # float(input("Spin speed [rad/s]: "))
 
 I = (np.pi / 64) * (Douter**4 - Dinner**4)  # Moment of inertia for hollow circular cross-section [m^4]
 A = (np.pi / 4) * (Douter**2 - Dinner**2)   # Cross-sectional area for hollow cylinder [m^2]
@@ -227,12 +230,80 @@ eigvecs = eigvecs[:, sorted_indices]
 numerical_freqs = numerical_freqs[sorted_indices]
 
 
-# === Print natural frequencies ===
+# ====================================================== Print natural frequencies ======================================================
 print("Numerical Natural frequencies (Hz):")
-for i, f in enumerate(numerical_freqs[:6]):
+for i, f in enumerate(numerical_freqs[:12]):
     print(f"w_{i+1}: {f:.2f} Hz")
 
 # === Plot mode shapes (u_y and u_z) ===
+# ====================================================== PLot 3D ======================================================
+
+# Define number of modeshapes plotted
+n_modes = min(6, len(numerical_freqs))
+x = np.linspace(0, L, n_nodes)
+
+# creating a 3D Disc
+def create_disc(x_center, y_center, z_center, radius, num_points=30):
+    theta = np.linspace(0, 2 * np.pi, num_points)
+    y = y_center + radius * np.cos(theta)
+    z = z_center + radius * np.sin(theta)
+    x = np.full_like(y, x_center)
+    return list(zip(x, y, z))
+
+# 3D-Plot for every modeshape
+for i in range(n_modes):
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    full_mode = np.zeros(total_dof)
+    eigvec_displacement = eigvecs[M_reduced.shape[0]:, i]
+    full_mode[free_dofs] = np.abs(eigvec_displacement)
+
+    v = full_mode[0::4]
+    w = full_mode[2::4]
+
+    y_def = v
+    z_def = w
+
+    # Axis not deformed
+    ax.plot(x, np.zeros_like(x), np.zeros_like(x), 'k--', linewidth=1, label='Axis')
+
+    # Axis defomrmed
+    ax.plot(x, y_def, z_def, 'y.-', label=f'Mode {i+1}')
+
+    # Discs
+    for disc in discs:
+        node = int(disc['pos'])
+        disc_points = create_disc(x[node], y_def[node], z_def[node], radius=0.05)
+        disc_poly = Poly3DCollection([disc_points], color='skyblue', alpha=0.5)
+        ax.add_collection3d(disc_poly)
+
+    # Bearings
+    for b in bearings:
+        node = int(b['pos'])
+        ax.scatter(x[node], y_def[node], z_def[node], c='r', s=60, label='Bearing' if b == bearings[0] else "")
+
+    # Nodes
+    ax.scatter(x, y_def, z_def, c='yellow', edgecolors='k', s=30, label='Node')
+    for idx in range(n_nodes):
+        ax.text(x[idx], y_def[idx], z_def[idx], str(idx), fontsize=6)
+
+    ax.set_xlim(0, L)
+    ax.set_ylim(-0.2, 0.2)
+    ax.set_zlim(-0.2, 0.2)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title(f"3D Mode Shape {i+1} ({numerical_freqs[i]:.2f} Hz)")
+    ax.view_init(elev=20, azim=135)
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+# ====================================================== PLot 2D ======================================================
 x = np.linspace(0, L, n_nodes)
 n_modes = min(6, len(numerical_freqs))
 
